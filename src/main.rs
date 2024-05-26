@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::BufWriter;
 
 use resvg::usvg::fontdb::{Family, Query};
@@ -6,6 +7,11 @@ use svg::Document;
 use svg::node::element::{Circle, Path, Text, TextPath};
 use resvg::usvg::{fontdb, Options, Transform, Tree};
 use resvg::tiny_skia::{Pixmap, PixmapMut};
+use phf::phf_map;
+
+use crate::ogham::into_ogham;
+
+mod ogham;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let circle = Circle::new()
@@ -13,6 +19,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set("cy", 500)
         .set("r", 100)
         .set("id", "circle1")
+        .set("fill", "none")
+        .set("stroke", "black")
+        .set("stroke-width", 1);
+
+    let circle2 = Circle::new()
+        .set("cx", 800)
+        .set("cy", 500)
+        .set("r", 100)
+        .set("id", "circle2")
         .set("fill", "none")
         .set("stroke", "black")
         .set("stroke-width", 1);
@@ -41,31 +56,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set("font-size", 30)
         .set("fill", "black");
 
+    // to make sure the line connects neatly we will have to warp
+    // example: https://henry.codes/writing/how-to-distort-text-with-svg/
+    let ogham_text = TextPath::new(into_ogham("Hello, World! I am glad to be here".to_string()))
+        .set("x", 0)
+        .set("y", 600)
+        .set("href", "#circle2")
+        .set("text-anchor", "start")
+        .set("font-family", "Tengwar Annatar")
+        // .set("letter-spacing", "-4")
+        .set("font-size", 15)
+        .set("fill", "black");
+
     let text_node = Text::new("")
+        .add(ogham_text.clone())
         .add(text_path.clone());
 
 
-    // let data = Data::new()
-        // .
-        // .move_to((10, 10))
-        // .line_by((0, 50))
-        // .line_by((50, 0))
-        // .line_by((0, -50))
-        // .close();
 
-    // let path = Path::new()
-    //     .set("fill", "none")
-    //     .set("stroke", "black")
-    //     .set("stroke-width", 1)
-    //     .set("d", circle);
 
     let document = Document::new()
         .set("viewBox", (0, 0, 2000, 2000))
         .add(circle)
+        .add(circle2)
         .add(path)
         .add(text_node)
+        // .add(ogham_text)
         ;
         // .add(text_path);
+
+
 
 
     svg::save("image.svg", &document)?;
@@ -75,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?}", svg_data.len());
 
     let mut fontdb = fontdb::Database::new();
-    // fontdb.load_system_fonts();
+    fontdb.load_system_fonts();
     fontdb.load_font_file("./resources/fonts/TengwarAnnatarAltBoldItalic-YzDo.ttf")?;
     fontdb.load_font_file("./resources/fonts/TengwarAnnatarBoldItalic-K7r7.ttf")?;
     let query = Query {
@@ -93,5 +113,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     resvg::render(&tree, Transform::default(), &mut pixmap.as_mut());
     pixmap.save_png("image.png")?;
+
+    println!("{:?}", into_ogham("Hello, World!".to_string()));
     Ok(())
 }
