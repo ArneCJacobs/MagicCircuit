@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::BufWriter;
+use itertools::Itertools;
 
 use resvg::usvg::fontdb::{Family, Query};
 use svg::node::element::path::Data;
@@ -124,41 +125,54 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut debug_data = Data::new();
     let offset = 0.13;
 
+    // try 1: quadratic curves with custom midpoint
+    // for curve in curves.iter() {
+    //     let (x1, y1) = curve[0];
+    //     data = data.move_to((x1, y1));
+    //     debug_data = debug_data.move_to((x1, y1));
+    //     let (x2, y2) = curve[1];
+    //     let (dx, dy) = (
+    //         x2 - x1,
+    //         y2 - y1,
+    //     );
+    //     let (mx, my) = (
+    //         (x1 + x2) / 2.0 - dy * offset,
+    //         (y1 + y2) / 2.0 + dx * offset,
+    //     );
+    //     // let (x3, y3) = curve[2];
+    //     // debug_data = debug_data.line_to((mx, my));
+    //     // data = data.move_to((mx, my));
+    //     data = data.quadratic_curve_to((mx, my, x2, y2));
+    //
+    //     // data = data.quadratic_curve_to((mx, my, x2, y2));
+    //     // data = data.quadratic_curve_to(())
+    //     // data = data.quadratic_curve_to((x2, y2, mx, my));
+    //     // dots.push(
+    //     //     Circle::new()
+    //     //         .set("cx", mx)
+    //     //         .set("cy", my)
+    //     //         .set("r", 1)
+    //     //         .set("fill", "black")
+    //     //     // .set("stroke", "black")
+    //     // );
+    //     debug_data = debug_data.line_to((x2, y2));
+    //     // data = data.move_to(parameters);
+    //
+    //     for (x, y) in curve.iter().skip(2) {
+    //         data = data.smooth_quadratic_curve_to((*x, *y));
+    //         // debug_data = debug_data.line_to((*x, *y));
+    //     }
+    // }
+
+    // try 2: quadratic curves control point on curve
     for curve in curves.iter() {
         let (x1, y1) = curve[0];
         data = data.move_to((x1, y1));
         debug_data = debug_data.move_to((x1, y1));
-        let (x2, y2) = curve[1];
-        let (dx, dy) = (
-            x2 - x1,
-            y2 - y1,
-        );
-        let (mx, my) = (
-            (x1 + x2) / 2.0 - dy * offset,
-            (y1 + y2) / 2.0 + dx * offset,
-        );
-        // let (x3, y3) = curve[2];
-        // debug_data = debug_data.line_to((mx, my));
-        // data = data.move_to((mx, my));
-        data = data.quadratic_curve_to((mx, my, x2, y2));
-
-        // data = data.quadratic_curve_to((mx, my, x2, y2));
-        // data = data.quadratic_curve_to(())
-        // data = data.quadratic_curve_to((x2, y2, mx, my));
-        // dots.push(
-        //     Circle::new()
-        //         .set("cx", mx)
-        //         .set("cy", my)
-        //         .set("r", 1)
-        //         .set("fill", "black")
-        //     // .set("stroke", "black")
-        // );
-        debug_data = debug_data.line_to((x2, y2));
-        // data = data.move_to(parameters);
-
-        for (x, y) in curve.iter().skip(2) {
-            data = data.smooth_quadratic_curve_to((*x, *y));
-            // debug_data = debug_data.line_to((*x, *y));
+        for ((cx, cy), (x, y)) in curve.iter().skip(1).tuples() {
+            data = data.quadratic_curve_to((*cx, *cy, *x, *y));
+            debug_data = debug_data.line_to((*cx, *cy));
+            debug_data = debug_data.line_to((*x, *y));
         }
     }
 
