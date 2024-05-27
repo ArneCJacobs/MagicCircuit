@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::BufWriter;
 
 use resvg::usvg::fontdb::{Family, Query};
+use svg::node::element::path::Data;
 use svg::node::element::tag::Path;
 use svg::Document;
 use svg::node::element::{Circle, Definitions, Path, Style, Text, TextPath};
@@ -94,40 +95,65 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add(style);
 
 
-    let document = Document::new()
+    let mut dots = Vec::new();
+
+    let c = 3.0;
+    let colors = ["red", "blue", "green", "yellow", "purple", "orange"];
+    // let angle: f64 = 137.508_f64.to_radians();
+    let angle: f64 = (83.702_f64).to_radians();
+    for i in 20..200 {
+        let r = c * (i as f64).sqrt();
+        let theta = (i as f64) * angle;
+        let x = r * theta.cos() + 300.0;
+        let y = r * theta.sin() + 300.0;
+        dots.push(
+            Circle::new()
+                .set("cx", x)
+                .set("cy", y)
+                .set("r", 1)
+                .set("fill", colors[i % colors.len()])
+        )
+    }
+
+    let data = Data::new()
+        .move_to((10, 90))
+        .quadratic_curve_by((10.0, -10.0, 20.0, 0.0))
+        .smooth_quadratic_curve_by((20.0, 0.0))
+        ;
+
+
+    let test_path = Path::new()
+        .set("fill", "none")
+        .set("stroke", "red")
+        .set("d", data);
+
+
+    let mut document = Document::new()
         .set("viewBox", (0, 0, 2000, 2000))
         .add(defs)
-        .add(circle)
-        .add(circle2)
-        .add(circle3)
-        .add(path)
-        .add(text_node)
-
+        // .add(circle)
+        // .add(circle2)
+        // .add(circle3)
+        // .add(path)
+        // .add(text_node)
+        .add(test_path)
         // .add(ogham_text)
         ;
         // .add(text_path);
 
-
-
+    for dot in dots {
+        document = document.add(dot.clone());
+    }
 
     svg::save("image.svg", &document)?;
     let mut svg_data = Vec::new();
     let writer = BufWriter::new(&mut svg_data);
     svg::write(writer, &document)?;
-    println!("{:?}", svg_data.len());
-
     let mut fontdb = fontdb::Database::new();
     fontdb.load_system_fonts();
     fontdb.load_font_file("./resources/fonts/TengwarAnnatarAltBoldItalic-YzDo.ttf")?;
     fontdb.load_font_file("./resources/fonts/TengwarAnnatarBoldItalic-K7r7.ttf")?;
-    let query = Query {
-        families: &[Family::Name("Tengwar Annatar")],
-        ..Default::default()
-    };
-    // for face in fontdb.faces() {
-    //     println!("{:?}", face);
-    // }
-    println!("{:?}", fontdb.query(&query));
+
     let opt = Options::default();
     let tree = Tree::from_data(&svg_data, &opt, &fontdb)?;
     let pixmap_size = tree.size().to_int_size();
@@ -135,7 +161,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     resvg::render(&tree, Transform::default(), &mut pixmap.as_mut());
     pixmap.save_png("image.png")?;
-
-    println!("{:?}", into_ogham("Hello, World!".to_string()));
     Ok(())
 }
