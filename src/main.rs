@@ -67,12 +67,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set("font-size", 14)
         .set("fill", "black");
 
+    let lorem_ipsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
     // to make sure the line connects neatly we will have to warp
     // example: https://henry.codes/writing/how-to-distort-text-with-svg/
-    let ogham_text = TextPath::new(into_ogham("Hello, World! I am glad to be here".to_string()))
+    let ogham_text = TextPath::new(into_ogham(lorem_ipsum.to_string()))
         .set("x", 0)
         .set("y", 600)
-        .set("href", "#circle2")
+        .set("href", "#test_path")
         .set("text-anchor", "start")
         .set("font-family", "Tengwar Annatar")
         // .set("letter-spacing", "-4")
@@ -82,6 +83,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let text_node = Text::new("")
         .add(ogham_text.clone())
         .add(text_path.clone());
+
+
 
 
 
@@ -98,12 +101,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut dots: Vec<Circle> = Vec::new();
 
-    let c = 10.0;
+    let c = 11.0;
     let colors = ["red", "blue", "green", "yellow", "purple", "orange"];
     // let angle: f64 = 137.508_f64.to_radians();
     let angle: f64 = (83.702_f64).to_radians();
     let mut curves = vec![vec![]; 30];
-    for i in 20..200 {
+    for i in 00..300 {
         let r = c * (i as f64).sqrt();
         let theta = (i as f64) * angle;
         let x = r * theta.cos() + 300.0;
@@ -123,71 +126,71 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let mut data = Data::new();
     let mut debug_data = Data::new();
-    let offset = 0.13;
 
-    // try 1: quadratic curves with custom midpoint
-    // for curve in curves.iter() {
-    //     let (x1, y1) = curve[0];
-    //     data = data.move_to((x1, y1));
-    //     debug_data = debug_data.move_to((x1, y1));
-    //     let (x2, y2) = curve[1];
-    //     let (dx, dy) = (
-    //         x2 - x1,
-    //         y2 - y1,
-    //     );
-    //     let (mx, my) = (
-    //         (x1 + x2) / 2.0 - dy * offset,
-    //         (y1 + y2) / 2.0 + dx * offset,
-    //     );
-    //     // let (x3, y3) = curve[2];
-    //     // debug_data = debug_data.line_to((mx, my));
-    //     // data = data.move_to((mx, my));
-    //     data = data.quadratic_curve_to((mx, my, x2, y2));
-    //
-    //     // data = data.quadratic_curve_to((mx, my, x2, y2));
-    //     // data = data.quadratic_curve_to(())
-    //     // data = data.quadratic_curve_to((x2, y2, mx, my));
-    //     // dots.push(
-    //     //     Circle::new()
-    //     //         .set("cx", mx)
-    //     //         .set("cy", my)
-    //     //         .set("r", 1)
-    //     //         .set("fill", "black")
-    //     //     // .set("stroke", "black")
-    //     // );
-    //     debug_data = debug_data.line_to((x2, y2));
-    //     // data = data.move_to(parameters);
-    //
-    //     for (x, y) in curve.iter().skip(2) {
-    //         data = data.smooth_quadratic_curve_to((*x, *y));
-    //         // debug_data = debug_data.line_to((*x, *y));
-    //     }
-    // }
-
-    // try 2: quadratic curves control point on curve
+    // try 3: catmull rom curves
+    let alpha = 0.5;
     for curve in curves.iter() {
-        let (x1, y1) = curve[0];
-        data = data.move_to((x1, y1));
-        debug_data = debug_data.move_to((x1, y1));
-        for ((cx, cy), (x, y)) in curve.iter().skip(1).tuples() {
-            data = data.quadratic_curve_to((*cx, *cy, *x, *y));
-            debug_data = debug_data.line_to((*cx, *cy));
-            debug_data = debug_data.line_to((*x, *y));
+        let mut t_i = vec![0.0];
+        for i in 1..curve.len() {
+            let (x1, y1) = curve[i - 1];
+            let (x2, y2) = curve[i];
+            let d = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt().powf(alpha);
+            t_i.push(t_i[i - 1] + d);
         }
-    }
+        debug_data = debug_data.move_to(curve[0]);
+        for i in 1..curve.len()-1 {
+            debug_data = debug_data.line_to(curve[i]);
+        }
+        data = data.move_to(curve[1]);
+        for i in 1..curve.len()-2 {
+            let (x0, y0) = curve[i - 1];
+            let (x1, y1) = curve[i];
+            let (x2, y2) = curve[i + 1];
+            let (x3, y3) = curve[i + 2];
 
-    
-    //
-    // let data = Data::new()
-    //     .move_to((10, 90))
-    //     .quadratic_curve_by((10.0, -10.0, 20.0, 0.0))
-    //     .smooth_quadratic_curve_by((20.0, 0.0))
-    //     ;
+            let t0 = t_i[i - 1];
+            let t1 = t_i[i];
+            let t2 = t_i[i + 1];
+            let t3 = t_i[i + 2];
+
+            let c1 = (t2 - t1) / (t2 - t0);
+            let c2 = (t1 - t0) / (t2 - t0);
+
+            let d1 = (t3 - t2) / (t3 - t1);
+            let d2 = (t2 - t1) / (t3 - t1);
+
+            let m1 = (
+                (t2 - t1) * (c1 * (x1 - x0) / (t1 - t0) + c2 * (x2 - x1) / (t2 - t1)),
+                (t2 - t1) * (c1 * (y1 - y0) / (t1 - t0) + c2 * (y2 - y1) / (t2 - t1)),
+            );
+
+            let m2 = (
+                (t2 - t1) * (d1 * (x2 - x1) / (t2 - t1) + d2 * (x3 - x2) / (t3 - t2)),
+                (t2 - t1) * (d1 * (y2 - y1) / (t2 - t1) + d2 * (y3 - y2) / (t3 - t2)),
+            );
+
+            // let q0 = (x1, x2);
+            let q1 = (
+                x1 + m1.0 / 3.0,
+                y1 + m1.1 / 3.0,
+            );
+            let q2 = (
+                x2 - m2.0 / 3.0,
+                y2 - m2.1 / 3.0,
+            );
+            let q3 = (x2, y2);
+            data = data.cubic_curve_to((q1.0, q1.1, q2.0, q2.1, q3.0, q3.1));
+        }
+        
+
+    }
 
 
     let test_path = Path::new()
         .set("fill", "none")
-        .set("stroke", "red")
+        // .set("stroke", "red")
+        .set("stroke", "none")
+        .set("id", "test_path")
         .set("d", data);
 
     let debug_path = Path::new()
@@ -203,7 +206,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // .add(circle2)
         // .add(circle3)
         // .add(path)
-        // .add(text_node)
+        .add(text_node)
         .add(test_path)
         // .add(debug_path)
         // .add(ogham_text)
@@ -230,5 +233,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     resvg::render(&tree, Transform::default(), &mut pixmap.as_mut());
     pixmap.save_png("image.png")?;
+    println!("Done rendering!");
     Ok(())
 }
