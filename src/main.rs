@@ -4,7 +4,7 @@ use std::io::BufWriter;
 use resvg::usvg::fontdb::{Family, Query};
 use svg::node::element::tag::Path;
 use svg::Document;
-use svg::node::element::{Circle, Path, Text, TextPath};
+use svg::node::element::{Circle, Definitions, Path, Style, Text, TextPath};
 use resvg::usvg::{fontdb, Options, Transform, Tree};
 use resvg::tiny_skia::{Pixmap, PixmapMut};
 use phf::phf_map;
@@ -22,6 +22,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set("fill", "none")
         .set("stroke", "black")
         .set("stroke-width", 1);
+
+    let circle3 = Circle::new()
+        .set("cx", 800)
+        .set("cy", 500)
+        .set("r", 105.3)
+        .set("id", "circle3")
+        .set("fill", "none")
+        .set("stroke", "black")
+        .set("stroke-width", 1.5);
 
     let circle2 = Circle::new()
         .set("cx", 800)
@@ -47,13 +56,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set("stroke", "red")
         .set("d", "M10,90 Q90,90 90,45 Q90,10 50,10 Q10,10 10,40 Q10,70 45,70 Q70,70 75,50");
     
-    let text_path = TextPath::new("!Hello, World!")   
+    let text_path = TextPath::new("Hello, World, neat this is cool!")   
         .set("x", 0)
         .set("y", 600)
         .set("href", "#circle1")
         .set("text-anchor", "start")
         .set("font-family", "Tengwar Annatar")
-        .set("font-size", 30)
+        .set("font-size", 14)
         .set("fill", "black");
 
     // to make sure the line connects neatly we will have to warp
@@ -74,13 +83,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
 
+    let style = Style::new(r#"
+        @font-face {
+            font-family: "Tengwar Annatar";
+            src: url('./resources/fonts/TengwarAnnatarBoldItalic-K7r7.ttf') format("truetype");
+        }
+    "#).set("type", "text/css");
+
+    let defs = Definitions::new()
+        .add(style);
+
 
     let document = Document::new()
         .set("viewBox", (0, 0, 2000, 2000))
+        .add(defs)
         .add(circle)
         .add(circle2)
+        .add(circle3)
         .add(path)
         .add(text_node)
+
         // .add(ogham_text)
         ;
         // .add(text_path);
