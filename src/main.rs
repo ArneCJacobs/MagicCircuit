@@ -95,37 +95,91 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add(style);
 
 
-    let mut dots = Vec::new();
+    let mut dots: Vec<Circle> = Vec::new();
 
-    let c = 3.0;
+    let c = 10.0;
     let colors = ["red", "blue", "green", "yellow", "purple", "orange"];
     // let angle: f64 = 137.508_f64.to_radians();
     let angle: f64 = (83.702_f64).to_radians();
+    let mut curves = vec![vec![]; 30];
     for i in 20..200 {
         let r = c * (i as f64).sqrt();
         let theta = (i as f64) * angle;
         let x = r * theta.cos() + 300.0;
         let y = r * theta.sin() + 300.0;
-        dots.push(
-            Circle::new()
-                .set("cx", x)
-                .set("cy", y)
-                .set("r", 1)
-                .set("fill", colors[i % colors.len()])
-        )
+        curves[i % 30].push((x, y));
+
+        // dots.push(
+        //     Circle::new()
+        //         .set("cx", x)
+        //         .set("cy", y)
+        //         .set("r", 1)
+        //         .set("fill", colors[i % colors.len()])
+        //     // .set("stroke", "black")
+        // );
     }
 
-    let data = Data::new()
-        .move_to((10, 90))
-        .quadratic_curve_by((10.0, -10.0, 20.0, 0.0))
-        .smooth_quadratic_curve_by((20.0, 0.0))
-        ;
+    
+    let mut data = Data::new();
+    let mut debug_data = Data::new();
+    let offset = 0.13;
+
+    for curve in curves.iter() {
+        let (x1, y1) = curve[0];
+        data = data.move_to((x1, y1));
+        debug_data = debug_data.move_to((x1, y1));
+        let (x2, y2) = curve[1];
+        let (dx, dy) = (
+            x2 - x1,
+            y2 - y1,
+        );
+        let (mx, my) = (
+            (x1 + x2) / 2.0 - dy * offset,
+            (y1 + y2) / 2.0 + dx * offset,
+        );
+        // let (x3, y3) = curve[2];
+        // debug_data = debug_data.line_to((mx, my));
+        // data = data.move_to((mx, my));
+        data = data.quadratic_curve_to((mx, my, x2, y2));
+
+        // data = data.quadratic_curve_to((mx, my, x2, y2));
+        // data = data.quadratic_curve_to(())
+        // data = data.quadratic_curve_to((x2, y2, mx, my));
+        // dots.push(
+        //     Circle::new()
+        //         .set("cx", mx)
+        //         .set("cy", my)
+        //         .set("r", 1)
+        //         .set("fill", "black")
+        //     // .set("stroke", "black")
+        // );
+        debug_data = debug_data.line_to((x2, y2));
+        // data = data.move_to(parameters);
+
+        for (x, y) in curve.iter().skip(2) {
+            data = data.smooth_quadratic_curve_to((*x, *y));
+            // debug_data = debug_data.line_to((*x, *y));
+        }
+    }
+
+    
+    //
+    // let data = Data::new()
+    //     .move_to((10, 90))
+    //     .quadratic_curve_by((10.0, -10.0, 20.0, 0.0))
+    //     .smooth_quadratic_curve_by((20.0, 0.0))
+    //     ;
 
 
     let test_path = Path::new()
         .set("fill", "none")
         .set("stroke", "red")
         .set("d", data);
+
+    let debug_path = Path::new()
+        .set("fill", "none")
+        .set("stroke", "blue")
+        .set("d", debug_data);
 
 
     let mut document = Document::new()
@@ -137,6 +191,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // .add(path)
         // .add(text_node)
         .add(test_path)
+        // .add(debug_path)
         // .add(ogham_text)
         ;
         // .add(text_path);
