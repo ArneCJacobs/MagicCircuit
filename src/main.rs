@@ -127,7 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut data = Data::new();
     let mut debug_data = Data::new();
 
-    // try 3: catmull rom curves
+    // try 3: Centripetal Catmull–Rom spline
     let alpha = 0.5;
     for curve in curves.iter() {
         let mut t_i = vec![0.0];
