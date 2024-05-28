@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ogham_text = TextPath::new(into_ogham(lorem_ipsum.to_string()))
         .set("x", 0)
         .set("y", 600)
-        .set("href", "#test_path")
+        // .set("href", "#test_path")
         .set("text-anchor", "start")
         .set("font-family", "Tengwar Annatar")
         // .set("letter-spacing", "-4")
@@ -106,7 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let angle: f64 = 137.508_f64.to_radians();
     let angle: f64 = (83.702_f64).to_radians();
     let mut curves = vec![vec![]; 30];
-    for i in 00..300 {
+    for i in 10..300 {
         let r = c * (i as f64).sqrt();
         let theta = (i as f64) * angle;
         let x = r * theta.cos() + 300.0;
@@ -128,68 +128,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut debug_data = Data::new();
 
     // try 3: Centripetal Catmull–Rom spline
-    let alpha = 0.5;
+
     for curve in curves.iter() {
-        let mut t_i = vec![0.0];
-        for i in 1..curve.len() {
-            let (x1, y1) = curve[i - 1];
-            let (x2, y2) = curve[i];
-            let d = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt().powf(alpha);
-            t_i.push(t_i[i - 1] + d);
-        }
-        debug_data = debug_data.move_to(curve[0]);
-        for i in 1..curve.len()-1 {
-            debug_data = debug_data.line_to(curve[i]);
-        }
-        data = data.move_to(curve[1]);
-        for i in 1..curve.len()-2 {
-            let (x0, y0) = curve[i - 1];
-            let (x1, y1) = curve[i];
-            let (x2, y2) = curve[i + 1];
-            let (x3, y3) = curve[i + 2];
-
-            let t0 = t_i[i - 1];
-            let t1 = t_i[i];
-            let t2 = t_i[i + 1];
-            let t3 = t_i[i + 2];
-
-            let c1 = (t2 - t1) / (t2 - t0);
-            let c2 = (t1 - t0) / (t2 - t0);
-
-            let d1 = (t3 - t2) / (t3 - t1);
-            let d2 = (t2 - t1) / (t3 - t1);
-
-            let m1 = (
-                (t2 - t1) * (c1 * (x1 - x0) / (t1 - t0) + c2 * (x2 - x1) / (t2 - t1)),
-                (t2 - t1) * (c1 * (y1 - y0) / (t1 - t0) + c2 * (y2 - y1) / (t2 - t1)),
-            );
-
-            let m2 = (
-                (t2 - t1) * (d1 * (x2 - x1) / (t2 - t1) + d2 * (x3 - x2) / (t3 - t2)),
-                (t2 - t1) * (d1 * (y2 - y1) / (t2 - t1) + d2 * (y3 - y2) / (t3 - t2)),
-            );
-
-            // let q0 = (x1, x2);
-            let q1 = (
-                x1 + m1.0 / 3.0,
-                y1 + m1.1 / 3.0,
-            );
-            let q2 = (
-                x2 - m2.0 / 3.0,
-                y2 - m2.1 / 3.0,
-            );
-            let q3 = (x2, y2);
-            data = data.cubic_curve_to((q1.0, q1.1, q2.0, q2.1, q3.0, q3.1));
-        }
-        
-
+        data = to_catmul_rom_spline(data, curve);
     }
 
 
     let test_path = Path::new()
         .set("fill", "none")
-        // .set("stroke", "red")
-        .set("stroke", "none")
+        .set("stroke", "red")
+        // .set("stroke", "none")
         .set("id", "test_path")
         .set("d", data);
 
@@ -235,4 +183,58 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     pixmap.save_png("image.png")?;
     println!("Done rendering!");
     Ok(())
+}
+
+const ALPHA: f64 = 0.5;
+fn to_catmul_rom_spline(mut data: Data, points: &[(f64, f64)]) -> Data {
+    let mut t_i = vec![0.0];
+    for i in 1..points.len() {
+        let (x1, y1) = points[i - 1];
+        let (x2, y2) = points[i];
+        let d = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt().powf(ALPHA);
+        t_i.push(t_i[i - 1] + d);
+    }
+    data = data.move_to(points[0]);
+
+    for i in 1..points.len()-2 {
+        let (x0, y0) = points[i - 1];
+        let (x1, y1) = points[i];
+        let (x2, y2) = points[i + 1];
+        let (x3, y3) = points[i + 2];
+
+        let t0 = t_i[i - 1];
+        let t1 = t_i[i];
+        let t2 = t_i[i + 1];
+        let t3 = t_i[i + 2];
+
+        let c1 = (t2 - t1) / (t2 - t0);
+        let c2 = (t1 - t0) / (t2 - t0);
+
+        let d1 = (t3 - t2) / (t3 - t1);
+        let d2 = (t2 - t1) / (t3 - t1);
+
+        let m1 = (
+            (t2 - t1) * (c1 * (x1 - x0) / (t1 - t0) + c2 * (x2 - x1) / (t2 - t1)),
+            (t2 - t1) * (c1 * (y1 - y0) / (t1 - t0) + c2 * (y2 - y1) / (t2 - t1)),
+        );
+
+        let m2 = (
+            (t2 - t1) * (d1 * (x2 - x1) / (t2 - t1) + d2 * (x3 - x2) / (t3 - t2)),
+            (t2 - t1) * (d1 * (y2 - y1) / (t2 - t1) + d2 * (y3 - y2) / (t3 - t2)),
+        );
+
+        // let q0 = (x1, x2);
+        let q1 = (
+            x1 + m1.0 / 3.0,
+            y1 + m1.1 / 3.0,
+        );
+        let q2 = (
+            x2 - m2.0 / 3.0,
+            y2 - m2.1 / 3.0,
+        );
+        let q3 = (x2, y2);
+        data = data.cubic_curve_to((q1.0, q1.1, q2.0, q2.1, q3.0, q3.1));
+    }
+
+    data
 }
