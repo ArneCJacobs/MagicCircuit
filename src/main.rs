@@ -12,6 +12,7 @@ use resvg::tiny_skia::{Pixmap, PixmapMut};
 use phf::phf_map;
 
 use crate::ogham::into_ogham;
+mod lambda_calculus_parser;
 
 mod ogham;
 
