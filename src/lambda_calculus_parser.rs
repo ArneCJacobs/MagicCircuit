@@ -527,27 +527,6 @@ mod tests {
         )
     );
 
-    //test_parse_lambda_expression!(
-    //    right_associative_2,
-    //    "(λx. x) (λy. y) (λz. z)",
-    //    LambdaExpression::Application(
-    //        Box::new(LambdaExpression::Abstraction(
-    //            "x".to_string(),
-    //            Box::new(LambdaExpression::Variable("x".to_string())),
-    //        )),
-    //        Box::new(LambdaExpression::Application(
-    //            Box::new(LambdaExpression::Abstraction(
-    //                "y".to_string(),
-    //                Box::new(LambdaExpression::Variable("y".to_string())),
-    //            )),
-    //            Box::new(LambdaExpression::Abstraction(
-    //                "z".to_string(),
-    //                Box::new(LambdaExpression::Variable("z".to_string())),
-    //            )),
-    //        )),
-    //    )
-    //);
-
     //λn.λf.λx.
     // n(λg.λh.h(g f))(λu.x)(λu.u)
     test_parse_lambda_expression!(
@@ -560,31 +539,31 @@ mod tests {
                 Box::new(LambdaExpression::Abstraction(
                     "x".to_string(),
                     Box::new(LambdaExpression::Application(
-                        Box::new(LambdaExpression::Variable("n".to_string())),
                         Box::new(LambdaExpression::Application(
-                            Box::new(LambdaExpression::Abstraction(
-                                "g".to_string(),
+                            Box::new(LambdaExpression::Application(
+                                Box::new(LambdaExpression::Variable("n".to_string())),
                                 Box::new(LambdaExpression::Abstraction(
-                                    "h".to_string(),
-                                    Box::new(LambdaExpression::Application(
-                                        Box::new(LambdaExpression::Variable("h".to_string())),
+                                    "g".to_string(),
+                                    Box::new(LambdaExpression::Abstraction(
+                                        "h".to_string(),
                                         Box::new(LambdaExpression::Application(
-                                            Box::new(LambdaExpression::Variable("g".to_string())),
-                                            Box::new(LambdaExpression::Variable("f".to_string())),
+                                            Box::new(LambdaExpression::Variable("h".to_string())),
+                                            Box::new(LambdaExpression::Application(
+                                                Box::new(LambdaExpression::Variable("g".to_string())),
+                                                Box::new(LambdaExpression::Variable("f".to_string())),
+                                            )),
                                         )),
                                     )),
                                 )),
                             )),
-                            Box::new(LambdaExpression::Application(
-                                Box::new(LambdaExpression::Abstraction(
-                                    "u".to_string(),
-                                    Box::new(LambdaExpression::Variable("x".to_string())),
-                                )),
-                                Box::new(LambdaExpression::Abstraction(
-                                    "u".to_string(),
-                                    Box::new(LambdaExpression::Variable("u".to_string())),
-                                )),
+                            Box::new(LambdaExpression::Abstraction(
+                                "u".to_string(),
+                                Box::new(LambdaExpression::Variable("x".to_string())),
                             )),
+                        )),
+                        Box::new(LambdaExpression::Abstraction(
+                            "u".to_string(),
+                            Box::new(LambdaExpression::Variable("u".to_string())),
                         )),
                     )),
                 )),
