@@ -5,23 +5,14 @@ use std::{
 
 use itertools::Itertools;
 use nom::{
-    branch::alt, bytes::complete::{tag, take_while, take_while1, take_while_m_n}, character::complete::space0, combinator::{all_consuming, map_res, opt}, multi::{many0, many1}, sequence::{delimited, preceded, separated_pair, Tuple}, IResult, Parser
+    branch::alt,
+    bytes::complete::{tag, take_while, take_while1, take_while_m_n},
+    character::complete::space0,
+    combinator::{all_consuming, map_res, opt},
+    multi::{many0, many1},
+    sequence::{delimited, preceded, separated_pair, Tuple},
+    IResult, Parser,
 };
-
-fn indent_reset() {
-    let mut indent = indent().lock().unwrap();
-    *indent = 0;
-}
-
-fn indent() -> &'static Mutex<u8> {
-    static INDENT: OnceLock<Mutex<u8>> = OnceLock::new();
-    INDENT.get_or_init(|| Mutex::new(0))
-}
-
-fn get_indent() -> u8 {
-    let indent = indent().lock().unwrap();
-    *indent
-}
 
 struct ScopeCall<F: FnMut()> {
     c: F,
@@ -42,17 +33,41 @@ macro_rules! defer {
     };
 }
 
+fn indent_reset() {
+    let mut indent = indent().lock().unwrap();
+    *indent = 0;
+}
+
+fn indent() -> &'static Mutex<u8> {
+    static INDENT: OnceLock<Mutex<u8>> = OnceLock::new();
+    INDENT.get_or_init(|| Mutex::new(0))
+}
+
+fn get_indent() -> u8 {
+    let indent = indent().lock().unwrap();
+    *indent
+}
+
 fn inc_indent() {
+    if !cfg!(feature = "DEBUG_PRINT") {
+        return;
+    }
     let mut indent = indent().lock().unwrap();
     *indent += 1;
 }
 
 fn dec_indent() {
+    if !cfg!(feature = "DEBUG_PRINT") {
+        return;
+    }
     let mut indent = indent().lock().unwrap();
     *indent -= 1;
 }
 
 fn println_with_indent(s: &str) {
+    if !cfg!(feature = "DEBUG_PRINT") {
+        return;
+    }
     let indent = get_indent();
     if indent == 0 {
         println!("{}", s);
@@ -134,7 +149,11 @@ fn parse_string_balanced_expression(expr: &str) -> IResult<&str, &str> {
                     println_with_indent("more closed brackets then open ones");
                     // print currrent char and index
                     //println_with_indent(&format!("index: {:?}, char: {:?}", index, ch));
-                    println_with_indent(&format!("parsed so far: {:?}, rest: {:?}", &expr[..index], &expr[index..]));
+                    println_with_indent(&format!(
+                        "parsed so far: {:?}, rest: {:?}",
+                        &expr[..index],
+                        &expr[index..]
+                    ));
                     //println_with_indent(&format!("parsed so far: {:?}, rest: {:?}", &chars[..index], &chars[index..]));
                     return Ok((&expr[index..], &expr[..index]));
                 }
@@ -175,11 +194,11 @@ fn parse_lambda_application(expr: &str) -> IResult<&str, LambdaExpression> {
     //println_with_indent(&format!("here0: {:?}", many1(parser).parse(expr)));
 
     let parser = preceded(
-        space0, 
+        space0,
         alt((
             parse_string_variable,
             delimited(tag("("), parse_string_balanced_expression, tag(")")),
-        ))
+        )),
     );
     let (input, res) = all_consuming(many1(parser)).parse(expr)?;
     println_with_indent(&format!("here1: {:?}", input));
@@ -201,8 +220,7 @@ fn parse_lambda_application(expr: &str) -> IResult<&str, LambdaExpression> {
                     all_consuming(parse_lambda_expression),
                 ))
             //)
-            .parse(s)
-        )
+            .parse(s))
         .collect::<Result<Vec<_>, _>>()?;
     println_with_indent(&format!("here2: {:?}", parsed_expressions));
     let mut expressions = parsed_expressions
@@ -549,8 +567,12 @@ mod tests {
                                         Box::new(LambdaExpression::Application(
                                             Box::new(LambdaExpression::Variable("h".to_string())),
                                             Box::new(LambdaExpression::Application(
-                                                Box::new(LambdaExpression::Variable("g".to_string())),
-                                                Box::new(LambdaExpression::Variable("f".to_string())),
+                                                Box::new(LambdaExpression::Variable(
+                                                    "g".to_string()
+                                                )),
+                                                Box::new(LambdaExpression::Variable(
+                                                    "f".to_string()
+                                                )),
                                             )),
                                         )),
                                     )),
@@ -582,7 +604,6 @@ mod tests {
             )),
         )
     );
-
 
     #[test]
     fn test_balanced_expression() {
